@@ -24,7 +24,7 @@ Then clone and install the `dqs` package:
 ```bash
 git clone https://github.com/teaguetomesh/dqs-term-grouping.git
 cd dqs-term-grouping
-pip install -e .
+pip install -e ".[dev,qiskit]"
 ```
 
 ## References
