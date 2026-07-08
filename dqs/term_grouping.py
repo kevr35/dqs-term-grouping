@@ -23,7 +23,12 @@ import numpy as np
 import pprint
 import networkx as nx
 from networkx.algorithms import approximation
-import mlrose
+# Use mlrose_hiive if available; fall back to legacy mlrose
+try:
+    import mlrose_hiive as mlrose
+except ImportError:
+    import mlrose
+
 
 
 class CommutativityType(object):

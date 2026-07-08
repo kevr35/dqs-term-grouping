@@ -5,7 +5,8 @@ import dqs
 import numpy as np
 import pickle
 import qiskit
-from qiskit.opflow import PauliSumOp
+from qiskit.quantum_info import PauliList, SparsePauliOp
+import scipy.linalg as la
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -24,10 +25,15 @@ def parse_args():
 
 
 def get_exact_unitary(H, t):
+    # Ensure H is a list of (pauli_string, coeff) tuples
     if isinstance(H[0][1], str):
         H = [(term[1], term[0]) for term in H]
-    pauli_sum_op = PauliSumOp.from_list(H, coeff=t)
-    return pauli_sum_op.exp_i().to_matrix()
+    # Build SparsePauliOp and scale by time t
+    pauli_list = PauliList([term[0] for term in H])
+    coeffs = [term[1] * t for term in H]
+    sparse_pauli_op = SparsePauliOp(pauli_list, coeffs=coeffs)
+    matrix = sparse_pauli_op.to_matrix()
+    return la.expm(1j * matrix)
 
 
 def reach_epsilon(t, epsilon, dqs_obj, r_limit=10):

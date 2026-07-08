@@ -7,7 +7,10 @@ from typing import List, Sequence, Tuple, Union
 import numpy as np
 import scipy.linalg as linalg
 import qiskit
-from qiskit.providers import aer
+try:
+    from qiskit_aer import Aer
+except ImportError:
+    Aer = None
 from qiskit.quantum_info import Choi, diamond_norm, Operator, process_fidelity, SuperOp
 #from transpilation import apply_transpiler
 from . import hamiltonians
@@ -687,8 +690,17 @@ class Dynamics:
         U : numpy array
             Matrix representation of the quantum circuit
         """
-        unitarysimulator = aer.Aer.get_backend("unitary_simulator")
-        # return execute(circ, unitarysimulator).result().get_unitary(circ)
+        if Aer is not None:
+            from qiskit_aer import AerSimulator
+            from qiskit.quantum_info import Operator
+            aer_sim = AerSimulator()
+            self.full_circ_copy.save_unitary()
+            result = aer_sim.run(self.full_circ_copy).result()
+            return result.get_unitary()
+        else:
+            # Fallback: compute unitary directly from the circuit
+            from qiskit.quantum_info import Operator
+            return Operator(self.full_circ_copy).data
 
         # compute sum of the global phases appearing in a single TS iteration
         phase_sum = np.sum(self.deltaTs[1])
@@ -696,22 +708,20 @@ class Dynamics:
         # NOTE: the unitary_simulator backend has a zero_threshold parameter
         # which truncates small values to zero (default: 1e-10)
         if iterateUnitary:
-            # Obtain the circuit unitary for a single TS iteration using the
-            # Qiskit unitary_simulator backend
-            #print("Calculating iterateUnitary")
-            # U = Operator(self.iterate_circ_copy).data
-            result = qiskit.execute(self.iterate_circ_copy, unitarysimulator).result()
-            U = result.get_unitary(self.iterate_circ_copy)
+            from qiskit_aer import AerSimulator
+            aer_sim = AerSimulator()
+            self.iterate_circ_copy.save_unitary()
+            result = aer_sim.run(self.iterate_circ_copy).result()
+            U = result.get_unitary()
 
             # Compute the necessary phase correction
             # phase_correction = np.exp((0 - 1j) * phase_sum / 2)
         else:
-            # Obtain the circuit unitary for the full TS decomposition using the
-            # Qiskit unitary_simulator backend
-            #print("Calculating fullCircuitUnitary")
-            # U = Operator(self.full_circ_copy).data
-            result = qiskit.execute(self.full_circ_copy, unitarysimulator).result()
-            U = result.get_unitary(self.full_circ_copy)
+            from qiskit_aer import AerSimulator
+            aer_sim = AerSimulator()
+            self.full_circ_copy.save_unitary()
+            result = aer_sim.run(self.full_circ_copy).result()
+            U = result.get_unitary()
 
             # Compute the necessary phase correction - the difference here is we
             # must multiply the phase_sum by the current value of r = deltaTs[0]

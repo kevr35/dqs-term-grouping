@@ -5,7 +5,8 @@ import dqs
 import numpy as np
 import pickle
 import qiskit
-from qiskit.opflow import PauliSumOp
+from qiskit.quantum_info import PauliList, SparsePauliOp
+import scipy.linalg as la
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -34,14 +35,17 @@ def parse_args():
 
 
 def get_pauli_sum_op(H):
-    pauli_table = qiskit.quantum_info.PauliTable.from_labels([term[1] for term in H])
-    sparse_pauli_op = qiskit.quantum_info.SparsePauliOp(pauli_table, [term[0] for term in H])
-    return PauliSumOp(sparse_pauli_op)
+    # Construct a SparsePauliOp directly from the Hamiltonian terms
+    pauli_list = PauliList([term[1] for term in H])
+    coeffs = [term[0] for term in H]
+    return SparsePauliOp(pauli_list, coeffs=coeffs)
 
 
 def get_exact_unitary(H):
-    pauli_sum_op = get_pauli_sum_op(H)
-    return pauli_sum_op.exp_i().to_matrix()
+    # Compute the exact unitary exp(i * H) using scipy.linalg.expm
+    sparse_pauli_op = get_pauli_sum_op(H)
+    matrix = sparse_pauli_op.to_matrix()
+    return la.expm(-1j * matrix)
 
 
 def fidelity_over_r(H, sort_type, r_vals):
