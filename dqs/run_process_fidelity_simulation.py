@@ -36,8 +36,13 @@ def parse_args():
 
 def get_pauli_sum_op(H):
     # Construct a SparsePauliOp directly from the Hamiltonian terms
-    pauli_list = PauliList([term[1] for term in H])
-    coeffs = [term[0] for term in H]
+    # Auto-detect format: (pauli_string, coef) or (coef, pauli_string)
+    if isinstance(H[0][0], str):
+        pauli_list = PauliList([term[0] for term in H])
+        coeffs = [term[1] for term in H]
+    else:
+        pauli_list = PauliList([term[1] for term in H])
+        coeffs = [term[0] for term in H]
     return SparsePauliOp(pauli_list, coeffs=coeffs)
 
 
